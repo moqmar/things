@@ -1,0 +1,9 @@
+run Starts the project if it's stopped or out of date: docker-compose up -d
+restart Restarts all Docker containers: docker-compose restart
+recreate Recreates all Docker containers: docker-compose up --force-recreate -d
+
+logs Prints the logs of all containers: docker-compose logs
+shell Starts a shell in the web container: docker-compose exec web sh
+
+backup Creates a logical database backup: if [ -x .backup ]; then ./.backup; else ../.backup; fi
+restore Restores the current logical database backup: if [ -x .restore ]; then ./.restore; else ../.restore; fi

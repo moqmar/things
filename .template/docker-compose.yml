@@ -1,0 +1,17 @@
+version: '3'
+services:
+  web:
+    image: what/ever
+    volumes:
+    - ./data:/data
+    restart: unless-stopped
+    networks: [default]
+  db:
+    image: mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: … # Generate one with the following command: echo `tr -dc A-Za-z0-9 < /dev/urandom | head -c 30`
+      MYSQL_DATABASE: example
+    volumes:
+    - ./database:/var/lib/mysql
+    restart: unless-stopped
+    networks: [default]

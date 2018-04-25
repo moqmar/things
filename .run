@@ -1,0 +1,19 @@
+new Creates a new project: '[ $# -ne 1 ] && echo "Usage: run new <project>" || { cp -R .template "$1" && cd "$1" && git init; }'
+
+all Starts all projects: for i in */; do run -c "$i"; done
+backup Create backups of all projects: for i in */; do run -c "$i" backup; done
+update Pull the latest version of all images used in projects: |
+  # Images from docker-compose.yml that are build locally
+  for i in */docker-compose.yml; do
+    python -c "import yaml, json, sys; print(json.dumps(yaml.load(open(sys.argv[1], 'r'))))" "$i" |
+    jq -r '.services | map(if .image and .build then .image else null end) | del(.[] | nulls)' |
+    sed -re 's/^\[$|^\]$|,$|^\s+|//g' -e 's/^"|"$//g' -e '/^$/d' |
+    grep -vxFe '[]';
+  done > /tmp/locally-built-images.txt
+  
+  # All images used in docker-compose.yml that are not built locally
+  online_images=`grep -Poh '^\s+image: \K.*' */docker-compose.yml | sort | uniq | grep -vxFf /tmp/locally-built-images.txt`
+  
+  # Pull docker images and recreate everything that's changed
+  docker pull $online_images
+  run all

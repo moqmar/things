@@ -1,0 +1,7 @@
+http:// {
+	proxy / http://something_web_1.docker {
+		transparent
+		websocket
+	}
+}
+# ...

@@ -1,0 +1,29 @@
+#!/bin/sh
+
+dockercompose=`python -c "import yaml, json; print(json.dumps(yaml.load(open('docker-compose.yml', 'r'))))"`
+dbcontainer=`docker-compose ps | grep -Eo '^\S+_db_1'`
+if [ -z "$dbcontainer" ]; then echo "The database container is not running."; exit 3; fi
+dbnetwork=`docker inspect $(echo $dbcontainer) | jq -r '.[0].NetworkSettings.Networks | keys[0]'`
+
+MYSQL_ROOT_PASSWORD=`echo "$dockercompose" | jq -r '.services.db.environment.MYSQL_ROOT_PASSWORD | if . then . else "" end'`
+POSTGRES_PASSWORD=`echo "$dockercompose" | jq -r '.services.db.environment.POSTGRES_PASSWORD | if . then . else "" end'`
+POSTGRES_USER=`echo "$dockercompose" | jq -r '.services.db.environment.POSTGRES_USER | if . then . else "" end'`
+MONGODB_URI=`echo "$dockercompose" | jq -r '.services.db.environment.MONGODB_URI | if . then . else "" end'`
+
+if [ -z "$MYSQL_ROOT_PASSWORD" ] && [ -z "POSTGRES_PASSWORD" ] && [ -z "POSTGRES_USER" ] && [ -z "MONGODB_URI" ]; then
+	echo "Couldn't determine database type. One of MYSQL_ROOT_PASSWORD, POSTGRES_PASSWORD or MONGODB_URI must be set on the 'db' container."
+	echo "Note that you have to use the 'VAR: value' notation instead of '- VAR=value' for environment variables inside your docker-compose.yml."
+	exit 4
+fi
+
+backupfile=backup.sql
+if [ -n "$MONGODB_URI" ]; then backupfile=backup.tar; fi
+
+docker run --rm \
+ -e MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
+ -e POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+ -e POSTGRES_USER="$POSTGRES_USER" \
+ -e MONGODB_URI="$MONGODB_URI" \
+ --network $dbnetwork -e HOST=$dbcontainer momar/database-backup > $backupfile || exit 5
+
+git add $backupfile; git commit -m "Database Backup $(date '+%F %T')" -- $backupfile && git push
