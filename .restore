@@ -25,9 +25,9 @@ fi
 backupfile=backup.sql
 if [ -n "$MONGODB_URI" ]; then backupfile=backup.tar; fi
 
-docker run --rm \
+docker run --rm -i \
  -e MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PASSWORD" \
  -e POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
  -e POSTGRES_USER="$POSTGRES_USER" \
  -e MONGODB_URI="$MONGODB_URI" \
- --network $dbnetwork -e HOST=$dbcontainer momar/database-backup < $backupfile
+ --network $dbnetwork -e HOST=$dbcontainer momar/database-backup restore < $backupfile
