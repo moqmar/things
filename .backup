@@ -26,4 +26,7 @@ docker run --rm \
  -e MONGODB_URI="$MONGODB_URI" \
  --network $dbnetwork -e HOST=$dbcontainer momar/database-backup > $backupfile || exit 5
 
-git add $backupfile; git commit -m "Database Backup $(date '+%F %T')" -- $backupfile && git push
+git add $backupfile
+if [ "$1" != "--no-commit" ]; then
+	git commit -m "Database Backup $(date '+%F %T')" -- $backupfile && git push || exit 0
+fi
