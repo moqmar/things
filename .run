@@ -1,7 +1,26 @@
+env:
+  ERRORMAIL: backup-status@example.org
+
 new Creates a new project: '[ $# -ne 1 ] && echo "Usage: run new <project>" || { cp -R .template "$1" && cd "$1" && git init; }'
 
 all Starts all projects: for i in */; do run -c "$i"; done
-backup Create backups of all projects: for i in */; do run -c "$i" backup; done
+
+# Add this to crontab for automated backups:
+# 0 0 * * * /usr/local/bin/run -c /vat/things/backup backup >/dev/null 2>&1
+backup Create backups of all projects: |
+  PATH=/bin:/usr/bin:/usr/local/bin
+  status=0
+  echo -n > /tmp/things-backup.log
+  for i in */; do
+    run -c "$i" backup >> /tmp/things-backup.log 2>&1 || status=$((status+1))
+  done
+  if [ $status -ne 0 ]; then
+    link=`curl -sT /tmp/things-backup.log https://qbin.io | grep '^https://qbin.io/' 2>&1`
+    [ -n "$link" ] && \
+    echo "Backup failed on `cat /etc/hostname`, $status things affected. More information here: $link" | mail -s "Backup failed" $ERRORMAIL || \
+    echo "Backup failed on `cat /etc/hostname`, $status things affected. Full log:\n`cat /var/things-backup.log`" | mail -s "Backup failed" $ERRORMAIL
+  fi
+
 update Pull the latest version of all images used in projects: |
   # Images from docker-compose.yml that are build locally
   for i in */docker-compose.yml; do
