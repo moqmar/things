@@ -28,5 +28,5 @@ docker run --rm \
 
 git add $backupfile
 if [ "$1" != "--no-commit" ]; then
-	git commit -m "Database Backup $(date '+%F %T')" -- $backupfile && git push || exit 0
+	git commit -m "Database Backup $(date '+%F %T')" -- $backupfile || exit 0 && git push
 fi
