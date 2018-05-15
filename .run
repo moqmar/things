@@ -27,12 +27,14 @@ update Pull the latest version of all images used in projects: |
     python -c "import yaml, json, sys; print(json.dumps(yaml.load(open(sys.argv[1], 'r'))))" "$i" |
     jq -r '.services | map(if .image and .build then .image else null end) | del(.[] | nulls)' |
     sed -re 's/^\[$|^\]$|,$|^\s+|//g' -e 's/^"|"$//g' -e '/^$/d' |
-    grep -vxFe '[]';
-  done > /tmp/locally-built-images.txt
+    grep -vxFe '[]' || true
+  done > /tmp/locally-built-images.txt || true
   
   # All images used in docker-compose.yml that are not built locally
   online_images=`grep -Poh '^\s+image: \K.*' */docker-compose.yml | sort | uniq | grep -vxFf /tmp/locally-built-images.txt`
-  
+
   # Pull docker images and recreate everything that's changed
-  docker pull $online_images
+  for i in $online_images; do
+    docker pull $i
+  done
   run all
